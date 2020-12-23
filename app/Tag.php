@@ -1,0 +1,65 @@
+<?php
+
+namespace App;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
+
+class Tag extends Model
+{
+    protected $fillable = [
+        'tag', 'title', 'subtitle', 'page_image', 'meta_description','reverse_direction',
+    ];
+
+    /**
+     * 定义文章与标签之间多对多关联关系
+     *
+     * @return BelongsToMany
+     */
+    public function posts()
+    {
+        return $this->belongsToMany('App\Post', 'post_tag_pivot');
+    }
+
+    /**
+     * Add any tags needed from the list
+     *
+     * @param array $tags List of tags to check/add
+     */
+    public static function addNeededTags(array $tags)
+    {
+        if (count($tags) === 0) {
+            return;
+        }
+
+        $found = Static::whereIn('tag', $tags)->pluck('tag')->all();
+        $new = collect($found);
+        $new = $new->diff($found, $tags);
+
+        foreach ($new as $tag) {
+            Static::create([
+                'tag' => $tag,
+                'title' => $tag,
+                'subtitle' => 'Subtitle for '.$tag,
+                'page_image' => '',
+                'meta_description' => '',
+                'reverse_direction' => false,
+            ]);
+        }
+    }
+
+    /**
+     * Return the index layout to use for a tag
+     *
+     * @param string $tag
+     * @param string $default
+     * @return string
+     */
+
+    public static function layout($tag, $default = 'blog.layouts.index')
+    {
+        $layout = static::whereTag($tag)->pluck('layout');
+
+        return $layout ?: $default;
+    }
+}
